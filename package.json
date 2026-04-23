@@ -1,0 +1,12 @@
+{
+  "name": "daily-planner",
+  "version": "1.0.0",
+  "description": "AI-powered daily focus and academic organiser",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

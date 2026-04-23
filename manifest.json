@@ -1,0 +1,14 @@
+{
+  "name": "Daily Planner",
+  "short_name": "Planner",
+  "description": "AI-powered daily focus and academic organiser",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2A5C45",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon.svg",          "sizes": "any",     "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-maskable.svg", "sizes": "any",     "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
