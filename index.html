@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#2A5C45">
 <title>Daily Planner</title>
 <link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon.svg">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -341,9 +342,23 @@ button { font-family: inherit; cursor: pointer; border: none; transition: all 0.
     <button class="tab-btn"        id="btn-deadlines" onclick="switchTab('deadlines')">Deadlines</button>
     <button class="tab-btn"        id="btn-labs"      onclick="switchTab('labs')">Labs</button>
     <button class="tab-btn"        id="btn-tasks"     onclick="switchTab('tasks')">Tasks</button>
-    <button class="tab-btn" title="Change API key" onclick="showApiKeyCard()">🔑</button>
+    <button class="tab-btn" title="Settings" onclick="toggleSettings()">⚙</button>
   </nav>
 </header>
+
+<!-- Settings panel -->
+<div id="settings-panel" style="display:none;background:var(--card);border-bottom:1px solid var(--border);padding:16px 20px">
+  <div style="font-size:12px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Settings</div>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <input type="text" id="api-key-inline" placeholder="API key  sk-ant-..." autocomplete="off" style="flex:1;font-size:14px">
+    <button class="btn-primary" style="min-width:64px;font-size:13px" onclick="saveApiKeyInline()">Save</button>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn-ghost" style="flex:1;font-size:13px" onclick="exportData()">Export data</button>
+    <button class="btn-ghost" style="flex:1;font-size:13px" onclick="importData()">Import data</button>
+  </div>
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImportFile(this)">
+</div>
 
 <main>
 
@@ -642,11 +657,81 @@ function switchTab(tab) {
   if (tab==='today')     renderUpcomingDeadlines();
 }
 
+// ─── Settings panel ───────────────────────────────────────────────────────────
+function toggleSettings() {
+  const panel = document.getElementById('settings-panel');
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? '' : 'none';
+  if (open && S.apiKey) {
+    document.getElementById('api-key-inline').value = S.apiKey.slice(0, 12) + '…';
+  }
+}
+
+function saveApiKeyInline() {
+  const v = document.getElementById('api-key-inline').value.trim();
+  if (!v.startsWith('sk-ant-')) { alert('Anthropic API keys start with sk-ant-'); return; }
+  S.apiKey = v;
+  persist();
+  document.getElementById('settings-panel').style.display = 'none';
+  document.getElementById('setup-card').style.display = 'none';
+  generateFocus();
+}
+
+function exportData() {
+  const data = {
+    tasks:      S.tasks,
+    flTasks:    S.flTasks,
+    flLog:      S.flLog,
+    flProducts: S.flProducts,
+    sticky:     S.sticky,
+    completedLog:   S.completedLog,
+    completedTasks: S.completedTasks,
+    exportedAt: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `daily-planner-${todayStr()}.json`;
+  a.click();
+}
+
+function importData() {
+  document.getElementById('import-file').click();
+}
+
+function handleImportFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.tasks)          S.tasks          = data.tasks;
+      if (data.flTasks)        S.flTasks        = data.flTasks;
+      if (data.flLog)          S.flLog          = data.flLog;
+      if (data.flProducts != null) S.flProducts = data.flProducts;
+      if (data.sticky)         S.sticky         = data.sticky;
+      if (data.completedLog)   S.completedLog   = data.completedLog;
+      if (data.completedTasks) S.completedTasks = data.completedTasks;
+      S.focus = null; S.focusDate = '';
+      persist();
+      renderSchedule();
+      renderUpcomingDeadlines();
+      renderCompletionLog();
+      renderStickyNote();
+      document.getElementById('settings-panel').style.display = 'none';
+      alert('Data imported successfully.');
+    } catch {
+      alert('Invalid file — please export a fresh copy and try again.');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
 // ─── API key ──────────────────────────────────────────────────────────────────
 function showApiKeyCard() {
-  switchTab('today');
   document.getElementById('setup-card').style.display = '';
-  document.getElementById('api-key-input').value = '';
   document.getElementById('api-key-input').focus();
 }
 function saveApiKey() {
